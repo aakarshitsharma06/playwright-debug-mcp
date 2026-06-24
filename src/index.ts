@@ -123,6 +123,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request: { params: { name
         selector_used: analysis.selector_used,
         console_errors: analysis.console_errors,
         network_failures: analysis.network_failures,
+        action_history: analysis.action_history,
+        recent_network_requests: analysis.recent_network_requests,
         dom_snapshot: analysis.dom_snapshot
       }, null, 2);
 
@@ -163,7 +165,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request: { params: { name
 
     if (name === "get_screenshots_around_time") {
       const tracePath = validateFilePath(args?.trace_path as string, '.zip');
-      const targetTime = args?.target_time as number;
+      const rawTime = args?.target_time;
+      if (typeof rawTime !== 'number' || isNaN(rawTime)) {
+        throw new Error('target_time must be a valid number (millisecond timestamp from get_action_history).');
+      }
+      const targetTime = rawTime;
       const screenshots = getScreenshotsAroundTime(tracePath, targetTime);
       
       const contentItems: any[] = [];
@@ -185,8 +191,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request: { params: { name
     }
 
     if (name === "suggest_fix") {
-      const errorMessage = args?.error_message as string;
-      const failingAction = args?.failing_action as string;
+      const errorMessage = args?.error_message;
+      const failingAction = args?.failing_action;
+      if (typeof errorMessage !== 'string' || !errorMessage) {
+        throw new Error('error_message is required and must be a non-empty string.');
+      }
+      if (typeof failingAction !== 'string' || !failingAction) {
+        throw new Error('failing_action is required and must be a non-empty string.');
+      }
       const selectorUsed = (args?.selector_used as string) || '';
       
       const suggestion = suggestFix(errorMessage, failingAction, selectorUsed);

@@ -181,7 +181,9 @@ export function parseTrace(tracePath: string): TraceAnalysisResult {
     let duration = 0;
     if (afterEvent) {
       status = afterEvent.error ? 'failed' : 'ok';
-      duration = afterEvent.endTime && beforeEvent.startTime ? afterEvent.endTime - beforeEvent.startTime : 0;
+      duration = (afterEvent.endTime != null && beforeEvent.startTime != null)
+        ? afterEvent.endTime - beforeEvent.startTime
+        : 0;
     }
     const actionName = beforeEvent.apiName || (beforeEvent.class && beforeEvent.method ? `${beforeEvent.class}.${beforeEvent.method}` : 'unknown');
     const selector = beforeEvent.params?.selector || '';
@@ -327,8 +329,8 @@ export function getActionHistory(tracePath: string): ActionDetail[] {
 
     if (afterEvent) {
       status = afterEvent.error ? 'failed' : 'ok';
-      endTime = afterEvent.endTime || null;
-      if (endTime && beforeEvent.startTime) {
+      endTime = afterEvent.endTime != null ? afterEvent.endTime : null;
+      if (endTime != null && beforeEvent.startTime != null) {
         duration = endTime - beforeEvent.startTime;
       }
       if (afterEvent.error) {

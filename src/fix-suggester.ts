@@ -8,6 +8,12 @@ export interface FixSuggestion {
 
 export function suggestFix(errorMessage: string, failingAction: string, selectorUsed: string): FixSuggestion {
   // Case-insensitive matching to be robust against different Playwright error message casing
+  if (!errorMessage || typeof errorMessage !== 'string') {
+    return { pattern_matched: 'unknown', explanation: 'No error message provided.', bad_code: '', fixed_code: '', reason: 'Pass error_message from analyze_trace.' };
+  }
+  if (!failingAction || typeof failingAction !== 'string') {
+    return { pattern_matched: 'unknown', explanation: 'No failing action provided.', bad_code: '', fixed_code: '', reason: 'Pass failing_action from analyze_trace.' };
+  }
   const msg = errorMessage.toLowerCase();
   const action = failingAction.toLowerCase();
 
