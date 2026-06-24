@@ -7,6 +7,7 @@ import { getFailedTests } from "./report-reader";
 import { parseTrace, getNetworkLog, getActionHistory } from "./trace-parser";
 import { getScreenshotBase64, getScreenshotsAroundTime } from "./screenshot";
 import { suggestFix } from "./fix-suggester";
+import { validateFilePath, SecurityError } from "./security";
 
 const server = new Server(
   { name: "playwright-debug-mcp", version: "1.0.0" },
@@ -104,7 +105,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: { params: { name
 
   try {
     if (name === "get_failed_tests") {
-      const reportPath = args?.report_path as string;
+      const reportPath = validateFilePath(args?.report_path as string, '.json');
       const failedTests = getFailedTests(reportPath);
       return {
         content: [{ type: "text", text: JSON.stringify(failedTests, null, 2) }]
@@ -112,7 +113,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: { params: { name
     }
 
     if (name === "analyze_trace") {
-      const tracePath = args?.trace_path as string;
+      const tracePath = validateFilePath(args?.trace_path as string, '.zip');
       process.stderr.write(`[playwright-debug-mcp] Parsing trace: ${tracePath}\n`);
       const analysis = parseTrace(tracePath);
       
@@ -144,7 +145,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: { params: { name
     }
 
     if (name === "get_network_log") {
-      const tracePath = args?.trace_path as string;
+      const tracePath = validateFilePath(args?.trace_path as string, '.zip');
       const filter = (args?.filter as 'all' | 'failed' | '4xx' | '5xx') || 'all';
       const logs = getNetworkLog(tracePath, filter);
       return {
@@ -153,7 +154,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: { params: { name
     }
 
     if (name === "get_action_history") {
-      const tracePath = args?.trace_path as string;
+      const tracePath = validateFilePath(args?.trace_path as string, '.zip');
       const history = getActionHistory(tracePath);
       return {
         content: [{ type: "text", text: JSON.stringify(history, null, 2) }]
@@ -161,7 +162,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: { params: { name
     }
 
     if (name === "get_screenshots_around_time") {
-      const tracePath = args?.trace_path as string;
+      const tracePath = validateFilePath(args?.trace_path as string, '.zip');
       const targetTime = args?.target_time as number;
       const screenshots = getScreenshotsAroundTime(tracePath, targetTime);
       
@@ -197,9 +198,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request: { params: { name
     throw new Error(`Unknown tool: ${name}`);
 
   } catch (err: any) {
-    process.stderr.write(`[playwright-debug-mcp] Error in tool ${name}: ${err.stack}\n`);
+    const isSecurityErr = err instanceof SecurityError;
+    process.stderr.write(`[playwright-debug-mcp] ${isSecurityErr ? 'SECURITY BLOCK' : 'Error'} in tool ${name}: ${err.stack}\n`);
     return {
-      content: [{ type: "text", text: `Error: ${err.message}` }],
+      content: [{ type: "text", text: `${isSecurityErr ? 'Security Error' : 'Error'}: ${err.message}` }],
       isError: true
     };
   }
