@@ -7,7 +7,11 @@ export interface FixSuggestion {
 }
 
 export function suggestFix(errorMessage: string, failingAction: string, selectorUsed: string): FixSuggestion {
-  if (errorMessage.includes("detached") && (failingAction.includes("click") || failingAction.includes("fill"))) {
+  // Case-insensitive matching to be robust against different Playwright error message casing
+  const msg = errorMessage.toLowerCase();
+  const action = failingAction.toLowerCase();
+
+  if (msg.includes('detached') && (action.includes('click') || action.includes('fill'))) {
     return {
       pattern_matched: "detached-element",
       explanation: "Element detached from DOM mid-action — React likely re-rendered between locating and acting",
@@ -17,7 +21,7 @@ export function suggestFix(errorMessage: string, failingAction: string, selector
     };
   }
 
-  if (errorMessage.includes("strict mode") || errorMessage.includes("resolved to")) {
+  if (msg.includes('strict mode') || msg.includes('resolved to')) {
     return {
       pattern_matched: "multiple-elements",
       explanation: "Locator matched multiple elements — Playwright strict mode requires exactly one",
@@ -27,7 +31,8 @@ export function suggestFix(errorMessage: string, failingAction: string, selector
     };
   }
 
-  if (errorMessage.includes("Timeout") || errorMessage.includes("waiting for")) {
+  // Matches: 'Timeout', 'timeout', 'timed out', 'waiting for', 'hung'
+  if (msg.includes('timeout') || msg.includes('timed out') || msg.includes('waiting for') || msg.includes('hung')) {
     return {
       pattern_matched: "timeout",
       explanation: "Element never appeared within the timeout window",
@@ -37,7 +42,7 @@ export function suggestFix(errorMessage: string, failingAction: string, selector
     };
   }
 
-  if (errorMessage.includes("net::ERR")) {
+  if (msg.includes('net::err')) {
     return {
       pattern_matched: "network-failure",
       explanation: "Network request failed completely — service down or test environment connectivity issue",

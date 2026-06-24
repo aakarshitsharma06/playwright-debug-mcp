@@ -174,7 +174,7 @@ export function parseTrace(tracePath: string): TraceAnalysisResult {
     process.stderr.write(`[trace-parser] Failing action found: ${failingAction} - ${errorMessage}\n`);
   }
 
-  const allActions: ActionSummary[] = [];
+  const allActions: (ActionSummary & { _startTime: number })[] = [];
   for (const [callId, beforeEvent] of beforeEvents.entries()) {
     const afterEvent = afterEvents.get(callId);
     let status = 'hung';
@@ -189,10 +189,13 @@ export function parseTrace(tracePath: string): TraceAnalysisResult {
       action: actionName,
       selector,
       duration_ms: Math.round(duration),
-      status
+      status,
+      _startTime: beforeEvent.startTime || 0
     });
   }
-  const actionHistory = allActions.slice(-5);
+  // Sort chronologically regardless of insertion order in the trace file
+  allActions.sort((a, b) => a._startTime - b._startTime);
+  const actionHistory: ActionSummary[] = allActions.slice(-5).map(({ _startTime, ...rest }) => rest);
 
   return {
     failing_action: failingAction,
