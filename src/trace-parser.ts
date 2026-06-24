@@ -237,10 +237,10 @@ export function getNetworkLog(tracePath: string, filter: 'all' | 'failed' | '4xx
     throw new Error(`Could not parse trace.zip at ${tracePath}: ${err.message}`);
   }
 
-  const entries = zip.getEntries().map(e => e.entryName);
-  process.stderr.write(`[trace-parser] getNetworkLog: zip has ${entries.length} entries\n`);
+  const allEntries = zip.getEntries();
+  process.stderr.write(`[trace-parser] getNetworkLog: zip has ${allEntries.length} entries\n`);
 
-  const networkEntry = zip.getEntries().find(e =>
+  const networkEntry = allEntries.find(e =>
     e.entryName.endsWith('-trace.network') || e.entryName === 'trace.network'
   );
   if (!networkEntry) {
@@ -273,9 +273,9 @@ export function getNetworkLog(tracePath: string, filter: 'all' | 'failed' | '4xx
 
         if (include) {
           results.push({
-            url,
-            method,
-            status,
+            url: event.request.url || '',
+            method: event.request.method || '',
+            status: status ?? -1,
             duration_ms: duration
           });
         }

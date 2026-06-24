@@ -9,7 +9,7 @@ const SENSITIVE_PATH_PATTERNS = [
   /\/\.ssh\//i,
   /\/\.aws\//i,
   /\/\.gnupg\//i,
-  /\/\.env/i,
+  /\/\.env(\.|$)/i,
   /\/\.git\//i,
   /\/Library\/Keychains\//i,
   /\/Library\/Application Support\/.*credentials/i,
@@ -36,11 +36,8 @@ export function validateFilePath(rawPath: string, expectedExtension: '.zip' | '.
   // Resolve to an absolute, canonical path (eliminates ../ traversal tricks)
   const resolved = path.resolve(rawPath);
 
-  // Block if the canonical path is different from what was resolved
-  // (this catches tricks like /foo/../../../etc/passwd)
-  if (resolved.includes('..')) {
-    throw new SecurityError(`Path traversal detected in path: ${rawPath}`);
-  }
+  // path.resolve() already canonicalizes and eliminates all '..' segments,
+  // so resolved paths never contain '..'. No additional check needed.
 
   // Enforce allowed extension
   const ext = path.extname(resolved).toLowerCase();
