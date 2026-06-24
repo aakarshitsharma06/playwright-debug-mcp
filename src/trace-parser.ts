@@ -33,7 +33,7 @@ export function parseTrace(tracePath: string): TraceAnalysisResult {
   }
 
   const entries = zip.getEntries().map(e => e.entryName);
-  process.stderr.write(`[trace-parser] zip contents: ${JSON.stringify(entries)}\n`);
+  process.stderr.write(`[trace-parser] zip has ${entries.length} entries, trace: ${entries.find(e => e.endsWith('.trace'))}\n`);
 
   const traceEntry = zip.getEntries().find(e =>
     e.entryName.endsWith('-trace.trace') || e.entryName === 'trace.trace'
@@ -53,7 +53,6 @@ export function parseTrace(tracePath: string): TraceAnalysisResult {
   
   const beforeEvents = new Map<string, any>();
   const afterEvents = new Map<string, any>();
-  const screencastFrames: any[] = [];
   const consoleErrors: string[] = [];
   
   for (const line of traceLines) {
@@ -64,7 +63,7 @@ export function parseTrace(tracePath: string): TraceAnalysisResult {
       } else if (event.type === 'after' && event.callId) {
         afterEvents.set(event.callId, event);
       } else if (event.type === 'screencast-frame') {
-        screencastFrames.push(event);
+        // collected only by get_screenshots_around_time — skip here for memory efficiency
       } else if (event.type === 'event' && event.method === 'console') {
         if (event.params && event.params.type === 'error') {
           consoleErrors.push(event.params.text || '');
@@ -82,10 +81,15 @@ export function parseTrace(tracePath: string): TraceAnalysisResult {
   let failingActionCallId: string | null = null;
   let lastFailedAfterEvent: any = null;
 
+  // Track the failing action with the HIGHEST endTime (chronologically last failure, not Map insertion order)
   for (const [callId, afterEvent] of afterEvents.entries()) {
     if (afterEvent.error) {
-      failingActionCallId = callId;
-      lastFailedAfterEvent = afterEvent;
+      const currentEndTime = afterEvent.endTime ?? -Infinity;
+      const existingEndTime = lastFailedAfterEvent?.endTime ?? -Infinity;
+      if (currentEndTime >= existingEndTime) {
+        failingActionCallId = callId;
+        lastFailedAfterEvent = afterEvent;
+      }
     }
   }
 
@@ -159,13 +163,22 @@ export function parseTrace(tracePath: string): TraceAnalysisResult {
   const recentNetworkRequests = allNetworkRequests.slice(-3);
 
   let domSnapshot = '';
-  const htmlEntries = entries.filter(e => e.startsWith('resources/') && e.endsWith('.html')).sort();
+  const htmlEntries = entries.filter(e => e.startsWith('resources/') && e.endsWith('.html'));
   if (htmlEntries.length > 0) {
-    const lastHtmlEntry = htmlEntries[htmlEntries.length - 1];
-    const htmlEntry = zip.getEntry(lastHtmlEntry);
-    if (htmlEntry) {
-      const htmlContent = htmlEntry.getData().toString('utf8');
-      domSnapshot = "<!-- Truncated to 5000 chars -->\n" + htmlContent.substring(0, 5000);
+    // Sort by compressed size descending — the most content-rich snapshot (typically the last page state)
+    // is the largest. sha1 names are content-addressed and have no temporal ordering.
+    const htmlZipEntries = zip.getEntries()
+      .filter(e => e.entryName.startsWith('resources/') && e.entryName.endsWith('.html'))
+      .sort((a, b) => b.header.size - a.header.size);
+    const bestHtmlEntry = htmlZipEntries[0];
+    if (bestHtmlEntry) {
+      const htmlContent = bestHtmlEntry.getData().toString('utf8');
+      const limit = 5000;
+      if (htmlContent.length > limit) {
+        domSnapshot = `<!-- DOM snapshot truncated to ${limit} chars (full size: ${htmlContent.length}) -->\n` + htmlContent.substring(0, limit);
+      } else {
+        domSnapshot = htmlContent;
+      }
     }
   }
 
@@ -225,7 +238,7 @@ export function getNetworkLog(tracePath: string, filter: 'all' | 'failed' | '4xx
   }
 
   const entries = zip.getEntries().map(e => e.entryName);
-  process.stderr.write(`[trace-parser] zip contents: ${JSON.stringify(entries)}\n`);
+  process.stderr.write(`[trace-parser] getNetworkLog: zip has ${entries.length} entries\n`);
 
   const networkEntry = zip.getEntries().find(e =>
     e.entryName.endsWith('-trace.network') || e.entryName === 'trace.network'

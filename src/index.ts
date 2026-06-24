@@ -148,8 +148,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request: { params: { name
 
     if (name === "get_network_log") {
       const tracePath = validateFilePath(args?.trace_path as string, '.zip');
-      const filter = (args?.filter as 'all' | 'failed' | '4xx' | '5xx') || 'all';
-      const logs = getNetworkLog(tracePath, filter);
+      const rawFilter = (args?.filter as string) || 'all';
+      const validFilters = ['all', 'failed', '4xx', '5xx'] as const;
+      if (!validFilters.includes(rawFilter as any)) {
+        throw new Error(`Invalid filter "${rawFilter}". Must be one of: ${validFilters.join(', ')}.`);
+      }
+      const logs = getNetworkLog(tracePath, rawFilter as 'all' | 'failed' | '4xx' | '5xx');
       return {
         content: [{ type: "text", text: JSON.stringify(logs, null, 2) }]
       };

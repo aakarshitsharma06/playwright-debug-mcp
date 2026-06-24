@@ -28,8 +28,8 @@ export function getFailedTests(reportPath: string): FailedTest[] {
   function processSuite(suite: any) {
     if (suite.specs) {
       for (const spec of suite.specs) {
-        const title = spec.title;
-        const file = spec.file;
+        const title = spec.title ?? '';
+        const file = spec.file ?? '';
         for (const test of spec.tests || []) {
           const status = test.status;
           if (status === 'failed' || status === 'timedOut') {
