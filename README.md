@@ -23,7 +23,7 @@ This server can be used out-of-the-box by any MCP-compatible AI agent without ne
 4. Set **Name** to `playwright-debug`
 5. Set **Command** to:
    ```bash
-   npx -y playwright-debug-mcp
+   npx -y github:aakarshitsharma06/playwright-debug-mcp
    ```
 
 ### Using in VS Code (with Cline / RooCode extension)
@@ -33,7 +33,7 @@ Open your MCP configuration file (usually in `~/Library/Application Support/Code
   "mcpServers": {
     "playwright-debugger": {
       "command": "npx",
-      "args": ["-y", "playwright-debug-mcp"]
+      "args": ["-y", "github:aakarshitsharma06/playwright-debug-mcp"]
     }
   }
 }
@@ -46,7 +46,7 @@ Open your Claude Desktop config file (`~/Library/Application Support/Claude/clau
   "mcpServers": {
     "playwright-debugger": {
       "command": "npx",
-      "args": ["-y", "playwright-debug-mcp"]
+      "args": ["-y", "github:aakarshitsharma06/playwright-debug-mcp"]
     }
   }
 }
