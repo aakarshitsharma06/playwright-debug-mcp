@@ -1,0 +1,24 @@
+{
+  "name": "playwright-debug-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for Playwright debugging",
+  "main": "dist/index.js",
+  "bin": {
+    "playwright-debug-mcp": "./dist/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "adm-zip": "0.5.10"
+  },
+  "devDependencies": {
+    "@types/adm-zip": "0.5.5",
+    "@types/node": "^20",
+    "ts-node": "^10",
+    "typescript": "^5"
+  },
+  "scripts": {
+    "start": "ts-node src/index.ts",
+    "build": "tsc",
+    "dev": "ts-node --watch src/index.ts"
+  }
+}

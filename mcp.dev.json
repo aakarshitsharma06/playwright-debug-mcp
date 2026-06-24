@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "playwright-debug-mcp": {
+      "command": "npx",
+      "args": ["ts-node", "src/index.ts"],
+      "cwd": "${workspaceFolder}/playwright-debug-mcp"
+    }
+  }
+}
