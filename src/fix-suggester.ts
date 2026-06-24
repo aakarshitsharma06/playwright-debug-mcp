@@ -17,7 +17,9 @@ export function suggestFix(errorMessage: string, failingAction: string, selector
   const msg = errorMessage.toLowerCase();
   const action = failingAction.toLowerCase();
 
-  if (msg.includes('detached') && (action.includes('click') || action.includes('fill'))) {
+  // 'detached' OR 'not attached to the dom' — both are real Playwright detached-element messages
+  if ((msg.includes('detached') || msg.includes('not attached to the dom')) &&
+      (action.includes('click') || action.includes('fill'))) {
     return {
       pattern_matched: "detached-element",
       explanation: "Element detached from DOM mid-action — React likely re-rendered between locating and acting",
@@ -27,7 +29,9 @@ export function suggestFix(errorMessage: string, failingAction: string, selector
     };
   }
 
-  if (msg.includes('strict mode') || msg.includes('resolved to')) {
+  // 'strict mode violation' or 'resolved to N elements' — tightened to avoid false positives
+  // like 'Promise resolved to undefined' which is not a strict-mode error
+  if (msg.includes('strict mode') || (msg.includes('resolved to') && msg.match(/resolved to \d+ element/))) {
     return {
       pattern_matched: "multiple-elements",
       explanation: "Locator matched multiple elements — Playwright strict mode requires exactly one",
